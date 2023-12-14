@@ -58,14 +58,11 @@ int16_t RagicAPI::writeList_Json(JsonObject &injson, POST_Parameters_t &parm)
             {
                 if (_CONSOLE_PRINT_LEVEL >= _PRINT_LEVEL_WARNING)
                 {
-                    _CONSOLE_PRINT(_PRINT_LEVEL_WARNING, "寫入失敗!\n");
-                    String strError="";
+                    _CONSOLE_PRINTLN(_PRINT_LEVEL_WARNING, "寫入失敗!");
+                    String strError = "";
                     serializeJson(injson, strError);
-                    _CONSOLE_PRINT(_PRINT_LEVEL_WARNING, strError);
-                    Serial.println(strError);                    
+                    _CONSOLE_PRINTLN(_PRINT_LEVEL_WARNING, strError);
                     serializeJsonPretty((*parm.json), strError);
-                    _CONSOLE_PRINT(_PRINT_LEVEL_WARNING, strError);
-                    Serial.println(strError);
                 }
                 httpCode = OTHER_ERROR;
             }
@@ -75,7 +72,7 @@ int16_t RagicAPI::writeList_Json(JsonObject &injson, POST_Parameters_t &parm)
             }
         }
         else
-            _CONSOLE_PRINT(_PRINT_LEVEL_WARNING, "HTTP ERROR:" + HTTPClient::errorToString(httpCode) + '\n');
+            _CONSOLE_PRINTF(_PRINT_LEVEL_WARNING, "HTTP ERROR:%s\n", HTTPClient::errorToString(httpCode).c_str());
     }
     csHTTPClient.end();
     return httpCode;
@@ -113,8 +110,7 @@ int16_t RagicAPI::readList_Json(GET_Parameters_t &parm)
             WEB += '&' + parm.other;
         if (testsw)
         {
-            _CONSOLE_PRINTF(_PRINT_LEVEL_INFO,"WEB=%s\n", WEB.c_str());
-            DebugInterface.Write(WEB + '\n');
+            _CONSOLE_PRINTF(_PRINT_LEVEL_INFO, "WEB=%s\n", WEB.c_str());
         }
         csHTTPClient.begin(WEB);
         httpCode = csHTTPClient.GET();
@@ -133,7 +129,7 @@ int16_t RagicAPI::readList_Json(GET_Parameters_t &parm)
             }
         }
         else
-            _CONSOLE_PRINT(_PRINT_LEVEL_WARNING, "HTTP ERROR:" + HTTPClient::errorToString(httpCode) + '\n');
+            _CONSOLE_PRINTF(_PRINT_LEVEL_WARNING, "HTTP ERROR:%s\n", HTTPClient::errorToString(httpCode).c_str());
     }
     csHTTPClient.end();
     return httpCode;
