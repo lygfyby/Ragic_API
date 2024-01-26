@@ -29,7 +29,7 @@ public:
         String other = "";
         String web="";
         uint16_t id=0;
-        DynamicJsonDocument * json=0;
+        JsonDocument * json=0;
     } GET_Parameters_t;
     typedef struct POST_Parameters_t
     {
@@ -41,7 +41,7 @@ public:
         String other = "";
         String web="";
         uint16_t id=0;
-        DynamicJsonDocument * json=0;
+        JsonDocument * json=0;
     } POST_Parameters_t;
     static const enum ERROR_CODE_e {
         NO_connect = -100,

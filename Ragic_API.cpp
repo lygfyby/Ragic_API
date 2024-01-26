@@ -21,6 +21,7 @@ int16_t RagicAPI::writeList_Json(JsonObject &injson, POST_Parameters_t &parm)
 {
     bool testsw = false;
     int16_t httpCode = NO_connect;
+
     if (WiFi.status() == WL_CONNECTED)
     {
         String WEB = (parm.web) + (parm.id != 0 ? '/' + (String)parm.id : "");
@@ -35,10 +36,11 @@ int16_t RagicAPI::writeList_Json(JsonObject &injson, POST_Parameters_t &parm)
         String strPOST = "";
         serializeJson(injson, strPOST);
         httpCode = csHTTPClient.POST(strPOST);
+
         if (httpCode == HTTP_CODE_OK)
         {
             // DynamicJsonDocument returndoc(parm.jsSize);
-            StaticJsonDocument<200> filter;
+           JsonDocument  filter;
             filter["ragicId"] = true;
             filter["status"] = true;
             if (testsw)
@@ -47,6 +49,7 @@ int16_t RagicAPI::writeList_Json(JsonObject &injson, POST_Parameters_t &parm)
                 while (stream->available())
                     Serial.write(stream->read());
             }
+
             DeserializationError error = deserializeJson(*parm.json, csHTTPClient.getStream(), DeserializationOption::Filter(filter));
             if (error)
             {
@@ -60,8 +63,8 @@ int16_t RagicAPI::writeList_Json(JsonObject &injson, POST_Parameters_t &parm)
                 {
                     _CONSOLE_PRINTLN(_PRINT_LEVEL_WARNING, "寫入失敗!");
                     String strError = "";
-                    serializeJson(injson, strError);
-                    _CONSOLE_PRINTLN(_PRINT_LEVEL_WARNING, strError);
+                    // serializeJsonPretty(injson, strError);
+                    //_CONSOLE_PRINTLN(_PRINT_LEVEL_WARNING, strError);
                     serializeJsonPretty((*parm.json), strError);
                 }
                 httpCode = OTHER_ERROR;
