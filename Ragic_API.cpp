@@ -35,37 +35,46 @@ int16_t RagicAPI::writeList_Json(JsonObject &injson, POST_Parameters_t &parm)
         csHTTPClient.addHeader("Content-Type", "application/json");
         String strPOST = "";
         serializeJson(injson, strPOST);
+        if (testsw)
+        {
+            Serial.println(WEB);
+            serializeJson(injson, Serial);
+            Serial.println();
+        }
         httpCode = csHTTPClient.POST(strPOST);
 
         if (httpCode == HTTP_CODE_OK)
         {
             // DynamicJsonDocument returndoc(parm.jsSize);
-           JsonDocument  filter;
+            JsonDocument filter;
             filter["ragicId"] = true;
             filter["status"] = true;
-            if (testsw)
-            {
-                WiFiClient *stream = csHTTPClient.getStreamPtr();
-                while (stream->available())
-                    Serial.write(stream->read());
-            }
 
             DeserializationError error = deserializeJson(*parm.json, csHTTPClient.getStream(), DeserializationOption::Filter(filter));
             if (error)
             {
                 _CONSOLE_PRINTF(_PRINT_LEVEL_WARNING, "反序列化失敗:%s\n", error.c_str());
-
+                if (testsw)
+                {
+                    serializeJsonPretty(*parm.json, Serial);
+                    Serial.println();
+                }
                 // return -1;
             }
             if ((*parm.json).as<JsonObject>()["status"].as<String>() != "SUCCESS")
             {
+                if (testsw)
+                {
+                    serializeJsonPretty(*parm.json, Serial);
+                    Serial.println();
+                }
                 if (_CONSOLE_PRINT_LEVEL >= _PRINT_LEVEL_WARNING)
                 {
                     _CONSOLE_PRINTLN(_PRINT_LEVEL_WARNING, "寫入失敗!");
-                    String strError = "";
-                    // serializeJsonPretty(injson, strError);
+                    // String strError = "";
+                    //  serializeJsonPretty(injson, strError);
                     //_CONSOLE_PRINTLN(_PRINT_LEVEL_WARNING, strError);
-                    serializeJsonPretty((*parm.json), strError);
+                    // serializeJsonPretty((*parm.json), strError);
                 }
                 httpCode = OTHER_ERROR;
             }
@@ -125,10 +134,11 @@ int16_t RagicAPI::readList_Json(GET_Parameters_t &parm)
 
             if (testsw)
             {
-                WiFiClient *stream = csHTTPClient.getStreamPtr();
-                while (stream->available())
-                    Serial.write(stream->read());
-                Serial.println("END");
+                serializeJsonPretty(*parm.json, Serial);
+                // WiFiClient *stream = csHTTPClient.getStreamPtr();
+                // while (stream->available())
+                //     Serial.write(stream->read());
+                Serial.println();
             }
         }
         else
