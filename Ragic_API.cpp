@@ -19,7 +19,7 @@ void RagicAPI::Begin(const char *uesr, const char *password)
  */
 int16_t RagicAPI::writeList_Json(JsonObject &injson, POST_Parameters_t &parm)
 {
-    bool testsw = false;
+    bool testsw = true;
     int16_t httpCode = NO_connect;
 
     if (WiFi.status() == WL_CONNECTED)
@@ -34,7 +34,6 @@ int16_t RagicAPI::writeList_Json(JsonObject &injson, POST_Parameters_t &parm)
         csHTTPClient.begin(WEB);
         csHTTPClient.addHeader("Content-Type", "application/json");
         String strPOST = "";
-        serializeJson(injson, strPOST);
         if (testsw)
         {
             Serial.println(WEB);
@@ -49,8 +48,8 @@ int16_t RagicAPI::writeList_Json(JsonObject &injson, POST_Parameters_t &parm)
             JsonDocument filter;
             filter["ragicId"] = true;
             filter["status"] = true;
-
-            DeserializationError error = deserializeJson(*parm.json, csHTTPClient.getStream(), DeserializationOption::Filter(filter));
+            // DeserializationError error = deserializeJson(*parm.json, csHTTPClient.getStream(), DeserializationOption::Filter(filter));
+            DeserializationError error = deserializeJson(*parm.json, csHTTPClient.getStream());
             if (error)
             {
                 _CONSOLE_PRINTF(_PRINT_LEVEL_WARNING, "反序列化失敗:%s\n", error.c_str());
@@ -71,10 +70,11 @@ int16_t RagicAPI::writeList_Json(JsonObject &injson, POST_Parameters_t &parm)
                 if (_CONSOLE_PRINT_LEVEL >= _PRINT_LEVEL_WARNING)
                 {
                     _CONSOLE_PRINTLN(_PRINT_LEVEL_WARNING, "寫入失敗!");
-                    // String strError = "";
-                    //  serializeJsonPretty(injson, strError);
+                    // serializeJsonPretty(*parm.json, Serial);
+                    //  String strError = "";
+                    // serializeJsonPretty(injson, strError);
                     //_CONSOLE_PRINTLN(_PRINT_LEVEL_WARNING, strError);
-                    // serializeJsonPretty((*parm.json), strError);
+                    //  serializeJsonPretty((*parm.json), strError);
                 }
                 httpCode = OTHER_ERROR;
             }
@@ -139,6 +139,89 @@ int16_t RagicAPI::readList_Json(GET_Parameters_t &parm)
                 // while (stream->available())
                 //     Serial.write(stream->read());
                 Serial.println();
+            }
+        }
+        else
+            _CONSOLE_PRINTF(_PRINT_LEVEL_WARNING, "HTTP ERROR:%s\n", HTTPClient::errorToString(httpCode).c_str());
+    }
+    csHTTPClient.end();
+    return httpCode;
+}
+int16_t RagicAPI::writeList_Json(JsonObject *objIn)
+{
+    bool testsw = true;
+    int16_t httpCode = NO_connect;
+    JsonObject obj = (*objIn);
+    if (!obj.containsKey("web") || !obj.containsKey("data"))
+    {
+        _CONSOLE_PRINTF(_PRINT_LEVEL_WARNING, "參數缺失!\n");
+        serializeJsonPretty(obj, Serial);
+        return PARAMETER_MISSING;
+    }
+    if (WiFi.status() == WL_CONNECTED)
+    {
+        testsw = obj.containsKey("test");
+        String WEB = obj["web"].as<String>() +
+                     ((obj.containsKey("id") && obj["id"].as<uint32_t>() != 0) ? '/' + obj["id"].as<String>() : "");
+        WEB += "?api";
+        WEB += (!obj.containsKey("doFormula") || obj["doFormula"].as<bool>()) ? "&doFormula=true" : "";
+        WEB += (!obj.containsKey("doDefaultValue") || obj["doDefaultValue"].as<bool>()) ? "&doDefaultValue=true" : "";
+        WEB += (!obj.containsKey("doLinkLoad") || obj["doLinkLoad"].as<bool>()) ? "&doLinkLoad=true" : "&doLinkLoad=first";
+        WEB += (!obj.containsKey("doWorkflow") || obj["doWorkflow"].as<bool>()) ? "&doWorkflow=true" : "";
+        WEB += (!obj.containsKey("checkLock") || obj["checkLock"].as<bool>()) ? "&checkLock=true" : "";
+        csHTTPClient.begin(WEB);
+        csHTTPClient.addHeader("Content-Type", "application/json");
+        if (testsw)
+        {
+            serializeJsonPretty(obj, Serial);
+            //_CONSOLE_PRINTF(_PRINT_LEVEL_WARNING, "WEB:%s\nDATA:%s\n", WEB.c_str(), obj["data"].as<const char *>());
+            _CONSOLE_PRINTF(_PRINT_LEVEL_WARNING, "WEB:%s\n", WEB.c_str());
+        }
+
+        httpCode = csHTTPClient.POST(obj["data"].as<String>());
+
+        if (httpCode == HTTP_CODE_OK)
+        {
+            // DynamicJsonDocument returndoc(parm.jsSize);
+            JsonDocument filter;
+            filter["ragicId"] = true;
+            filter["status"] = true;
+            //FIXME 不知為何直接deserializeJson(obj["return"]) 會跳出記憶體不足錯誤
+            JsonDocument testdoc;
+            DeserializationError error = deserializeJson(testdoc, csHTTPClient.getStream());
+            JsonObject objReturn = testdoc.as<JsonObject>();
+            obj["return"].set(objReturn);
+            if (error)
+            {
+                _CONSOLE_PRINTF(_PRINT_LEVEL_WARNING, "反序列化失敗:%s\n", error.c_str());
+                if (testsw)
+                {
+                    serializeJsonPretty(objReturn, Serial);
+                    Serial.println();
+                }
+                // return -1;
+            }
+            if (objReturn["status"].as<String>() != "SUCCESS")
+            {
+                if (testsw)
+                {
+                    serializeJsonPretty(objReturn, Serial);
+                    Serial.println();
+                }
+                if (_CONSOLE_PRINT_LEVEL >= _PRINT_LEVEL_WARNING)
+                {
+                    _CONSOLE_PRINTLN(_PRINT_LEVEL_WARNING, "寫入失敗!");
+                    // serializeJsonPretty(*parm.json, Serial);
+                    //  String strError = "";
+                    // serializeJsonPretty(injson, strError);
+                    //_CONSOLE_PRINTLN(_PRINT_LEVEL_WARNING, strError);
+                    //  serializeJsonPretty((*parm.json), strError);
+                }
+                httpCode = OTHER_ERROR;
+            }
+            else
+            {
+                _CONSOLE_PRINTF(_PRINT_LEVEL_INFO, "OK!ID=%s\n", objReturn["ragicId"].as<String>().c_str());
             }
         }
         else

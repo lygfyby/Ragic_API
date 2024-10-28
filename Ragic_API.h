@@ -42,9 +42,11 @@ public:
         String web="";
         uint16_t id=0;
         JsonDocument * json=0;
+        JsonObject  obj;
     } POST_Parameters_t;
     static const enum ERROR_CODE_e {
         NO_connect = -100,
+        PARAMETER_MISSING=-2,
         OTHER_ERROR=-1,
         SIZE_TOBIG
     } ERROR_CODE_e;
@@ -55,5 +57,6 @@ public:
     int16_t writeList_Json(JsonObject& injson,  POST_Parameters_t &parm);
 
     int16_t readList_Json( GET_Parameters_t &parm);    
+    int16_t writeList_Json(JsonObject *objIn); 
 };
 #endif
