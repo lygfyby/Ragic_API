@@ -1,13 +1,16 @@
 #include <Ragic_API.h>
+
 void RagicAPI::Begin(const char *Authorization)
 {
     csHTTPClient.setAuthorization(Authorization);
-    csHTTPClient.setTimeout(1500);
 }
 void RagicAPI::Begin(const char *uesr, const char *password)
 {
     csHTTPClient.setAuthorization(uesr, password);
-    csHTTPClient.setTimeout(1500);
+}
+void RagicAPI::setTimeOut(uint16_t value)
+{
+    intTimeOut = value;
 }
 /**
  * @brief 修改資料
@@ -20,7 +23,7 @@ void RagicAPI::Begin(const char *uesr, const char *password)
 int16_t RagicAPI::writeList_Json(JsonObject &injson, POST_Parameters_t &parm)
 {
     bool testsw = true;
-    int16_t httpCode = NO_connect;
+    int16_t httpCode = ERROR_CODE_HTTP_ERROR;
 
     if (WiFi.status() == WL_CONNECTED)
     {
@@ -76,7 +79,7 @@ int16_t RagicAPI::writeList_Json(JsonObject &injson, POST_Parameters_t &parm)
                     //_CONSOLE_PRINTLN(_PRINT_LEVEL_WARNING, strError);
                     //  serializeJsonPretty((*parm.json), strError);
                 }
-                httpCode = OTHER_ERROR;
+                httpCode = ERROR_CODE_OTHER_ERROR;
             }
             else
             {
@@ -92,7 +95,7 @@ int16_t RagicAPI::writeList_Json(JsonObject &injson, POST_Parameters_t &parm)
 int16_t RagicAPI::readList_Json(GET_Parameters_t &parm)
 {
     bool testsw = false;
-    int16_t httpCode = NO_connect;
+    int16_t httpCode = ERROR_CODE_HTTP_ERROR;
     if (WiFi.status() == WL_CONNECTED)
     {
         String WEB = (parm.web) + (parm.id != 0 ? '/' + (String)parm.id : "");
@@ -149,84 +152,114 @@ int16_t RagicAPI::readList_Json(GET_Parameters_t &parm)
 }
 int16_t RagicAPI::writeList_Json(JsonObject *objIn)
 {
-    bool testsw = true;
-    int16_t httpCode = NO_connect;
+    int16_t httpCode = -1;
     JsonObject obj = (*objIn);
-    if (!obj.containsKey("web") || !obj.containsKey("data"))
+    bool testsw = true;
+    testsw = !obj["test"].isNull();
+    if (testsw)
+        serializeJsonPretty(obj, Serial);
+
+    if (obj["web"].isNull() || obj["data"].isNull())
     {
         _CONSOLE_PRINTF(_PRINT_LEVEL_WARNING, "參數缺失!\n");
         serializeJsonPretty(obj, Serial);
-        return PARAMETER_MISSING;
+        return ERROR_CODE_PARAMETER_MISSING;
     }
-    if (WiFi.status() == WL_CONNECTED)
+    if (!isConnect(1))
     {
-        testsw = obj.containsKey("test");
+        _CONSOLE_PRINTF(_PRINT_LEVEL_WARNING, "網路錯誤!\n");
+        return ERROR_CODE_WIFI_DISCONNECTED;
+    }
+    else
+    {
+
         String WEB = obj["web"].as<String>() +
-                     ((obj.containsKey("id") && obj["id"].as<uint32_t>() != 0) ? '/' + obj["id"].as<String>() : "");
+                     ((obj["id"].isNull() && obj["id"].as<uint32_t>() != 0) ? '/' + obj["id"].as<String>() : "");
         WEB += "?api";
-        WEB += (!obj.containsKey("doFormula") || obj["doFormula"].as<bool>()) ? "&doFormula=true" : "";
-        WEB += (!obj.containsKey("doDefaultValue") || obj["doDefaultValue"].as<bool>()) ? "&doDefaultValue=true" : "";
-        WEB += (!obj.containsKey("doLinkLoad") || obj["doLinkLoad"].as<bool>()) ? "&doLinkLoad=true" : "&doLinkLoad=first";
-        WEB += (!obj.containsKey("doWorkflow") || obj["doWorkflow"].as<bool>()) ? "&doWorkflow=true" : "";
-        WEB += (!obj.containsKey("checkLock") || obj["checkLock"].as<bool>()) ? "&checkLock=true" : "";
+        WEB += (obj["doFormula"].isNull() || obj["doFormula"].as<bool>()) ? "&doFormula=true" : "";
+        WEB += (obj["doDefaultValue"].isNull() || obj["doDefaultValue"].as<bool>()) ? "&doDefaultValue=true" : "";
+        WEB += (obj["doLinkLoad"].isNull() || obj["doLinkLoad"].as<bool>()) ? "&doLinkLoad=true" : "&doLinkLoad=first";
+        WEB += (obj["doWorkflow"].isNull() || obj["doWorkflow"].as<bool>()) ? "&doWorkflow=true" : "";
+        WEB += (obj["checkLock"].isNull() || obj["checkLock"].as<bool>()) ? "&checkLock=true" : "";
         csHTTPClient.begin(WEB);
+        csHTTPClient.setTimeout(intTimeOut);
         csHTTPClient.addHeader("Content-Type", "application/json");
         if (testsw)
-        {
-            serializeJsonPretty(obj, Serial);
-            //_CONSOLE_PRINTF(_PRINT_LEVEL_WARNING, "WEB:%s\nDATA:%s\n", WEB.c_str(), obj["data"].as<const char *>());
             _CONSOLE_PRINTF(_PRINT_LEVEL_WARNING, "WEB:%s\n", WEB.c_str());
-        }
 
         httpCode = csHTTPClient.POST(obj["data"].as<String>());
 
-        if (httpCode == HTTP_CODE_OK)
+        if (httpCode != HTTP_CODE_OK)
         {
-            // DynamicJsonDocument returndoc(parm.jsSize);
+            _CONSOLE_PRINTF(_PRINT_LEVEL_WARNING, "HTTP ERROR:%s\n", HTTPClient::errorToString(httpCode).c_str());
+            return ERROR_CODE_HTTP_ERROR;
+        }
+        else
+        {
             JsonDocument filter;
             filter["ragicId"] = true;
             filter["status"] = true;
-            //FIXME 不知為何直接deserializeJson(obj["return"]) 會跳出記憶體不足錯誤
-            JsonDocument testdoc;
-            DeserializationError error = deserializeJson(testdoc, csHTTPClient.getStream());
-            JsonObject objReturn = testdoc.as<JsonObject>();
+            // FIXME待測試是否成功將回傳資料寫進傳入的Obj
+            JsonDocument returnDoc;
+            DeserializationError error = deserializeJson(returnDoc, csHTTPClient.getStream());
+            JsonObject objReturn = returnDoc.as<JsonObject>();
             obj["return"].set(objReturn);
+            returnDoc.clear();
+            objReturn = obj["return"];
             if (error)
             {
                 _CONSOLE_PRINTF(_PRINT_LEVEL_WARNING, "反序列化失敗:%s\n", error.c_str());
-                if (testsw)
-                {
-                    serializeJsonPretty(objReturn, Serial);
-                    Serial.println();
-                }
-                // return -1;
+                serializeJsonPretty(objReturn, Serial);
+                Serial.println();
+                return ERROR_CODE_DESERIALIZE_ERROR;
+            }
+            if (testsw)
+            {
+                serializeJsonPretty(objReturn, Serial);
+                Serial.println();
             }
             if (objReturn["status"].as<String>() != "SUCCESS")
             {
                 if (testsw)
-                {
-                    serializeJsonPretty(objReturn, Serial);
-                    Serial.println();
-                }
-                if (_CONSOLE_PRINT_LEVEL >= _PRINT_LEVEL_WARNING)
-                {
                     _CONSOLE_PRINTLN(_PRINT_LEVEL_WARNING, "寫入失敗!");
-                    // serializeJsonPretty(*parm.json, Serial);
-                    //  String strError = "";
-                    // serializeJsonPretty(injson, strError);
-                    //_CONSOLE_PRINTLN(_PRINT_LEVEL_WARNING, strError);
-                    //  serializeJsonPretty((*parm.json), strError);
-                }
-                httpCode = OTHER_ERROR;
+                httpCode = ERROR_CODE_OTHER_ERROR;
             }
             else
             {
-                _CONSOLE_PRINTF(_PRINT_LEVEL_INFO, "OK!ID=%s\n", objReturn["ragicId"].as<String>().c_str());
+                if (testsw)
+                    _CONSOLE_PRINTF(_PRINT_LEVEL_INFO, "寫入成功!ID=%d\n", objReturn["ragicId"].as<uint32_t>());
             }
         }
-        else
-            _CONSOLE_PRINTF(_PRINT_LEVEL_WARNING, "HTTP ERROR:%s\n", HTTPClient::errorToString(httpCode).c_str());
     }
+
     csHTTPClient.end();
-    return httpCode;
+    return 1;
+}
+
+void taskRagic(void *pvParam)
+{
+    while (!isConnect(FUNCTION_CODE_HAVE_IP))
+        _DELAY_MS(1000);
+    JsonObject *objIN;
+    RagicAPI *ptrRagic = (RagicAPI *)pvParam;
+
+    while (true)
+    {
+        if (xQueueReceive(ptrRagic->queueRagic, &objIN, 0) == pdPASS)
+        {
+            // serializeJsonPretty((*objIN), Serial);
+            if (!(*objIN)["Write"].isNull())
+            {
+                JsonObject obj = (*objIN)["Write"];
+                int16_t returnCode = ptrRagic->writeList_Json(&obj);
+                if (returnCode <= 0)
+                    _CONSOLE_PRINTF(_PRINT_LEVEL_INFO, "錯誤代碼:%d!\n", returnCode);
+            }
+            else if (!(*objIN)["Read"].isNull())
+            {
+                JsonObject obj = (*objIN)["Read"];
+            }
+        }
+        _DELAY_MS(50);
+    }
 }
