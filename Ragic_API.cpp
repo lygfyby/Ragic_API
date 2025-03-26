@@ -22,7 +22,7 @@ void RagicAPI::setTimeOut(uint16_t value)
  */
 int16_t RagicAPI::writeList_Json(JsonObject &injson, POST_Parameters_t &parm)
 {
-    bool testsw = true;
+    bool testsw = false;
     int16_t httpCode = ERROR_CODE_HTTP_ERROR;
 
     if (WiFi.status() == WL_CONNECTED)
@@ -37,11 +37,11 @@ int16_t RagicAPI::writeList_Json(JsonObject &injson, POST_Parameters_t &parm)
         csHTTPClient.begin(WEB);
         csHTTPClient.addHeader("Content-Type", "application/json");
         String strPOST = "";
+        serializeJson(injson, strPOST);        
         if (testsw)
         {
             Serial.println(WEB);
-            serializeJson(injson, Serial);
-            Serial.println();
+            Serial.println(strPOST);
         }
         httpCode = csHTTPClient.POST(strPOST);
 
@@ -51,8 +51,8 @@ int16_t RagicAPI::writeList_Json(JsonObject &injson, POST_Parameters_t &parm)
             JsonDocument filter;
             filter["ragicId"] = true;
             filter["status"] = true;
-            // DeserializationError error = deserializeJson(*parm.json, csHTTPClient.getStream(), DeserializationOption::Filter(filter));
-            DeserializationError error = deserializeJson(*parm.json, csHTTPClient.getStream());
+            //不知為何不能直接透過csHTTPClient.getStream()取得資料
+             DeserializationError error = deserializeJson(*parm.json, csHTTPClient.getString(), DeserializationOption::Filter(filter));
             if (error)
             {
                 _CONSOLE_PRINTF(_PRINT_LEVEL_WARNING, "反序列化失敗:%s\n", error.c_str());
@@ -60,6 +60,7 @@ int16_t RagicAPI::writeList_Json(JsonObject &injson, POST_Parameters_t &parm)
                 {
                     serializeJsonPretty(*parm.json, Serial);
                     Serial.println();
+                    //Serial.println(str);
                 }
                 // return -1;
             }
@@ -67,13 +68,14 @@ int16_t RagicAPI::writeList_Json(JsonObject &injson, POST_Parameters_t &parm)
             {
                 if (testsw)
                 {
+                    serializeJson(injson, Serial);
+                    Serial.println();
                     serializeJsonPretty(*parm.json, Serial);
                     Serial.println();
                 }
                 if (_CONSOLE_PRINT_LEVEL >= _PRINT_LEVEL_WARNING)
                 {
                     _CONSOLE_PRINTLN(_PRINT_LEVEL_WARNING, "寫入失敗!");
-                    // serializeJsonPretty(*parm.json, Serial);
                     //  String strError = "";
                     // serializeJsonPretty(injson, strError);
                     //_CONSOLE_PRINTLN(_PRINT_LEVEL_WARNING, strError);
@@ -165,7 +167,7 @@ int16_t RagicAPI::writeList_Json(JsonObject *objIn)
         serializeJsonPretty(obj, Serial);
         return ERROR_CODE_PARAMETER_MISSING;
     }
-    if (!isConnect(1))
+    if (!isConnect(Function_e ::FUNCTION_CODE_HAVE_IP))
     {
         _CONSOLE_PRINTF(_PRINT_LEVEL_WARNING, "網路錯誤!\n");
         return ERROR_CODE_WIFI_DISCONNECTED;
