@@ -1,6 +1,17 @@
+/**
+ * @file Ragic_API.h
+ * @author your name (you@domain.com)
+ * @brief
+ * @version 0.1
+ * @date 2025-03-27
+ *
+ * @copyright Copyright (c) 2025
+ * @note Postman 測試時需在Headers 新增Key:Authorization,Value:Basic ${API-KEY}
+ */
 #ifndef RAGIC_API_H
 #define RAGIC_API_H
 #include <Template.h>
+#define _E2S(x) #x
 class RagicAPI
 {
 private:
@@ -17,7 +28,7 @@ public:
     typedef struct GET_Parameters_t
     {
         bool subtables = false;         // 是否讀取子表格(0/1)
-        bool naming = false;            // 是否用名稱作為key("EID"=數字，"FNAME"=標題名稱);
+        bool naming = true;            // 是否用名稱作為key("EID"=數字，"FNAME"=標題名稱);
         bool listing = false;           // 是否只讀取列表頁有的資料(""/"coufig")
         bool info = false;              // 是否連帶讀取建立修改時間、人(""/"coufig")
         bool approval = false;          // 是否連帶讀取審核資料(""/"coufig")//?會自動將人名轉換成郵件
@@ -27,10 +38,38 @@ public:
         bool ignoreFixedFilter = false; // 是否取消固定篩選(""/"coufig")//*需有SYSAdmin權限
         bool reverse = false;           // 反轉資料進來的順序(false=新先舊後/true=舊先新後)//?無效?
         bool bbcode = false;            // 是否用BBCODE翻譯(false=HTML/true=BBCODE)//?沒測
-        String other = "";
+        String other = "";              // 其他自訂義Parameter
         String web = "";
         uint16_t id = 0;
-        JsonDocument *json = 0;
+        void ParametersToJson(JsonObject &obj) const
+        {
+            obj["subtables"] = subtables;
+            obj["naming"] = naming;
+            obj["listing"] = listing;
+            obj["info"] = info;
+            obj["approval"] = approval;
+            obj["conversation"] = conversation;
+            obj["commen"] = commen;
+            obj["ignoreMask"] = ignoreMask;
+            obj["ignoreFixedFilter"] = ignoreFixedFilter;
+            obj["reverse"] = reverse;
+            obj["bbcode"] = bbcode;
+        }
+        // 從 JSON 中讀取資料到 struct
+        void ParametersFromJson(const JsonObject &obj)
+        {
+             subtables=obj["subtables"];
+             naming=obj["naming"];
+             listing=obj["listing"];
+             info=obj["info"];
+             approval=obj["approval"];
+             conversation=obj["conversation"];
+             commen=obj["commen"];
+             ignoreMask=obj["ignoreMask"];
+             ignoreFixedFilter=obj["ignoreFixedFilter"];
+             reverse=obj["reverse"];
+             bbcode=obj["bbcode"];
+        }
     } GET_Parameters_t;
     typedef struct POST_Parameters_t
     {
@@ -42,10 +81,8 @@ public:
         String other = "";
         String web = "";
         uint32_t id = 0;
-        JsonDocument *json = 0;
-        JsonObject obj;
         // 將 struct 資料寫入 JSON
-        void toJson(JsonObject &obj) const
+        void ParametersToJson(JsonObject &obj) const
         {
             obj["doFormula"] = doFormula;
             obj["doDefaultValue"] = doDefaultValue;
@@ -54,7 +91,7 @@ public:
             obj["checkLock"] = checkLock;
         }
         // 從 JSON 中讀取資料到 struct
-        void fromJson(const JsonObject &obj)
+        void ParametersFromJson(const JsonObject &obj)
         {
             doFormula = obj["doFormula"];
             doDefaultValue = obj["doDefaultValue"];
@@ -80,10 +117,9 @@ public:
 
     void Begin(const char *uesr, const char *password);
     void setTimeOut(uint16_t value);
-    int16_t writeList_Json(JsonObject &injson, POST_Parameters_t &parm);
 
-    int16_t readList_Json(GET_Parameters_t &parm);
     int16_t writeList_Json(JsonObject *objIn);
+    int16_t readList_Json(JsonObject *objIn);
 };
 void taskRagic(void *pvParam);
 #endif
