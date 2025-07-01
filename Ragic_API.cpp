@@ -38,11 +38,11 @@ int16_t RagicAPI::writeList_Json(JsonObject *objIn)
         String WEB = obj["web"].as<String>() +
                      ((obj["id"].isNull() && obj["id"].as<uint32_t>() != 0) ? '/' + obj["id"].as<String>() : "");
         WEB += "?api";
-        WEB += (obj["doFormula"].isNull() || !obj["doFormula"].as<bool>()) ? "" : "&doFormula=true";
-        WEB += (obj["doDefaultValue"].isNull() || !obj["doDefaultValue"].as<bool>()) ? "" : "&doDefaultValue=true";
-        WEB += (obj["doLinkLoad"].isNull() || !obj["doLinkLoad"].as<bool>()) ? "&doLinkLoad=first" : "&doLinkLoad=true";
-        WEB += (obj["doWorkflow"].isNull() || !obj["doWorkflow"].as<bool>()) ? "" : "&doWorkflow=true";
-        WEB += (obj["checkLock"].isNull() || !obj["checkLock"].as<bool>()) ? "" : "&checkLock=true";
+        WEB += (obj["doFormula"].isNull() || !obj["doFormula"].as<bool>()) ? "&doFormula=true": "" ;
+        WEB += (obj["doDefaultValue"].isNull() || !obj["doDefaultValue"].as<bool>()) ? "&doDefaultValue=true":"" ;
+        WEB += (obj["doLinkLoad"].isNull() || !obj["doLinkLoad"].as<bool>()) ?  "&doLinkLoad=true":"&doLinkLoad=first" ;
+        WEB += (obj["doWorkflow"].isNull() || !obj["doWorkflow"].as<bool>()) ?  "&doWorkflow=true":"" ;
+        WEB += (obj["checkLock"].isNull() || !obj["checkLock"].as<bool>()) ?  "&checkLock=true":"" ;
 
         csHTTPClient.begin(WEB);
         csHTTPClient.setTimeout(intTimeOut);
@@ -55,7 +55,7 @@ int16_t RagicAPI::writeList_Json(JsonObject *objIn)
         if (httpCode != HTTP_CODE_OK)
         {
             _CONSOLE_PRINTF(_PRINT_LEVEL_WARNING, "HTTP ERROR:%s\n", HTTPClient::errorToString(httpCode).c_str());
-            return ERROR_CODE_HTTP_ERROR;
+            return httpCode;
         }
         else
         {
@@ -88,7 +88,9 @@ int16_t RagicAPI::writeList_Json(JsonObject *objIn)
             {
                 if (testsw)
                     _CONSOLE_PRINTLN(_PRINT_LEVEL_WARNING, "寫入失敗!");
-                httpCode = ERROR_CODE_OTHER_ERROR;
+                serializeJsonPretty(objReturn, Serial);
+                Serial.println();
+                httpCode = HTTPC_ERROR_STREAM_WRITE;
             }
             else
             {
@@ -127,8 +129,8 @@ int16_t RagicAPI::readList_Json(JsonObject *objIn)
         String WEB = obj["web"].as<String>() +
                      ((obj["id"].isNull() && obj["id"].as<uint32_t>() != 0) ? '/' + obj["id"].as<String>() : "");
         WEB += "?api";
-        WEB += (obj["naming"].isNull() || obj["naming"].as<bool>()) ? "&naming=EID" : "&naming=FNAME";
-        WEB += (obj["subtables"].isNull() || obj["subtables"].as<bool>()) ? "" : "&subtables=0";
+        WEB += (obj["naming"].isNull() || obj["naming"].as<bool>()) ?  "&naming=FNAME":"&naming=EID" ;
+        WEB += (obj["subtables"].isNull() || obj["subtables"].as<bool>()) ? "&subtables=0": "" ;
         WEB += (obj["listing"].isNull() || obj["listing"].as<bool>()) ? "" : "&listing";
         WEB += (obj["info"].isNull() || obj["info"].as<bool>()) ? "" : "&info";
         WEB += (obj["approval"].isNull() || obj["approval"].as<bool>()) ? "" : "&approval";
@@ -181,7 +183,7 @@ int16_t RagicAPI::readList_Json(JsonObject *objIn)
             if (!objReturn["status"].isNull())
             {
                 _CONSOLE_PRINTF(_PRINT_LEVEL_WARNING, "讀取失敗\n");
-                serializeJsonPretty(objReturn, Serial);   
+                serializeJsonPretty(objReturn, Serial);
                 Serial.println();
                 return ERROR_CODE_OTHER_ERROR;
             }

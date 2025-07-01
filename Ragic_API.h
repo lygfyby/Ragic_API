@@ -28,9 +28,9 @@ public:
     typedef struct GET_Parameters_t
     {
         bool subtables = false;         // 是否讀取子表格(0/1)
-        bool naming = true;            // 是否用名稱作為key("EID"=數字，"FNAME"=標題名稱);
-        bool listing = false;           // 是否只讀取列表頁有的資料(""/"coufig")
-        bool info = false;              // 是否連帶讀取建立修改時間、人(""/"coufig")
+        bool naming = false;            // 是否用數字作為key("EID"=數字，"FNAME"=標題名稱);
+        bool listing = false;           // 是否只讀取列表頁有的資料("false"/"true")
+        bool info = false;              // 是否連帶讀取建立修改時間、人("false"/"true")
         bool approval = false;          // 是否連帶讀取審核資料(""/"coufig")//?會自動將人名轉換成郵件
         bool conversation = false;      // 是否連帶讀取郵件往來紀錄(""/"coufig")
         bool commen = false;            // 是否連帶讀取對話紀錄(""/"coufig")
@@ -38,10 +38,12 @@ public:
         bool ignoreFixedFilter = false; // 是否取消固定篩選(""/"coufig")//*需有SYSAdmin權限
         bool reverse = false;           // 反轉資料進來的順序(false=新先舊後/true=舊先新後)//?無效?
         bool bbcode = false;            // 是否用BBCODE翻譯(false=HTML/true=BBCODE)//?沒測
+
+
         String other = "";              // 其他自訂義Parameter
         String web = "";
         uint16_t id = 0;
-        void ParametersToJson(JsonObject &obj) const
+        void ParametersToJson(JsonObject &obj) 
         {
             obj["subtables"] = subtables;
             obj["naming"] = naming;
@@ -56,7 +58,7 @@ public:
             obj["bbcode"] = bbcode;
         }
         // 從 JSON 中讀取資料到 struct
-        void ParametersFromJson(const JsonObject &obj)
+        void ParametersFromJson( JsonObject &obj)
         {
              subtables=obj["subtables"];
              naming=obj["naming"];
@@ -82,7 +84,7 @@ public:
         String web = "";
         uint32_t id = 0;
         // 將 struct 資料寫入 JSON
-        void ParametersToJson(JsonObject &obj) const
+        void ParametersToJson(JsonObject &obj) 
         {
             obj["doFormula"] = doFormula;
             obj["doDefaultValue"] = doDefaultValue;
@@ -91,7 +93,7 @@ public:
             obj["checkLock"] = checkLock;
         }
         // 從 JSON 中讀取資料到 struct
-        void ParametersFromJson(const JsonObject &obj)
+        void ParametersFromJson( JsonObject &obj)
         {
             doFormula = obj["doFormula"];
             doDefaultValue = obj["doDefaultValue"];
