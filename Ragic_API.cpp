@@ -23,13 +23,13 @@ int16_t RagicAPI::writeList_Json(JsonObject *objIn)
 
     if (obj["web"].isNull() || obj["data"].isNull())
     {
-        _CONSOLE_PRINTF(_PRINT_LEVEL_WARNING, "參數缺失!\n");
+        _CONSOLE_PRINTF(ARDUHAL_LOG_LEVEL_WARN, "參數缺失!\n");
         serializeJsonPretty(obj, Serial);
         return ERROR_CODE_PARAMETER_MISSING;
     }
     if (!isConnect(Function_e ::FUNCTION_CODE_HAVE_IP))
     {
-        _CONSOLE_PRINTF(_PRINT_LEVEL_WARNING, "網路錯誤!\n");
+        _CONSOLE_PRINTF(ARDUHAL_LOG_LEVEL_WARN, "網路錯誤!\n");
         return ERROR_CODE_WIFI_DISCONNECTED;
     }
     else
@@ -48,13 +48,13 @@ int16_t RagicAPI::writeList_Json(JsonObject *objIn)
         csHTTPClient.setTimeout(intTimeOut);
         csHTTPClient.addHeader("Content-Type", "application/json");
         if (testsw)
-            _CONSOLE_PRINTF(_PRINT_LEVEL_WARNING, "WEB:%s\n", WEB.c_str());
+            _CONSOLE_PRINTF(ARDUHAL_LOG_LEVEL_WARN, "WEB:%s\n", WEB.c_str());
 
         httpCode = csHTTPClient.POST(obj["data"].as<String>());
 
         if (httpCode != HTTP_CODE_OK)
         {
-            _CONSOLE_PRINTF(_PRINT_LEVEL_WARNING, "HTTP ERROR:%s\n", HTTPClient::errorToString(httpCode).c_str());
+            _CONSOLE_PRINTF(ARDUHAL_LOG_LEVEL_WARN, "HTTP ERROR:%s\n", HTTPClient::errorToString(httpCode).c_str());
             return httpCode;
         }
         else
@@ -74,7 +74,7 @@ int16_t RagicAPI::writeList_Json(JsonObject *objIn)
             obj["return"] = objReturn;
             if (error)
             {
-                _CONSOLE_PRINTF(_PRINT_LEVEL_WARNING, "反序列化失敗:%s\n", error.c_str());
+                _CONSOLE_PRINTF(ARDUHAL_LOG_LEVEL_WARN, "反序列化失敗:%s\n", error.c_str());
                 serializeJsonPretty(objReturn, Serial);
                 Serial.println();
                 return ERROR_CODE_DESERIALIZE_ERROR;
@@ -87,7 +87,7 @@ int16_t RagicAPI::writeList_Json(JsonObject *objIn)
             if (objReturn["status"].as<String>() != "SUCCESS")
             {
                 if (testsw)
-                    _CONSOLE_PRINTLN(_PRINT_LEVEL_WARNING, "寫入失敗!");
+                    _CONSOLE_PRINTLN(ARDUHAL_LOG_LEVEL_WARN, "寫入失敗!");
                 serializeJsonPretty(objReturn, Serial);
                 Serial.println();
                 httpCode = HTTPC_ERROR_STREAM_WRITE;
@@ -95,7 +95,7 @@ int16_t RagicAPI::writeList_Json(JsonObject *objIn)
             else
             {
                 if (testsw)
-                    _CONSOLE_PRINTF(_PRINT_LEVEL_INFO, "寫入成功!ID=%d\n", objReturn["ragicId"].as<uint32_t>());
+                    _CONSOLE_PRINTF(ARDUHAL_LOG_LEVEL_INFO, "寫入成功!ID=%d\n", objReturn["ragicId"].as<uint32_t>());
             }
         }
     }
@@ -114,13 +114,13 @@ int16_t RagicAPI::readList_Json(JsonObject *objIn)
 
     if (obj["web"].isNull())
     {
-        _CONSOLE_PRINTF(_PRINT_LEVEL_WARNING, "參數缺失!\n");
+        _CONSOLE_PRINTF(ARDUHAL_LOG_LEVEL_WARN, "參數缺失!\n");
         serializeJsonPretty(obj, Serial);
         return ERROR_CODE_PARAMETER_MISSING;
     }
     if (!isConnect(Function_e ::FUNCTION_CODE_HAVE_IP))
     {
-        _CONSOLE_PRINTF(_PRINT_LEVEL_WARNING, "網路錯誤!\n");
+        _CONSOLE_PRINTF(ARDUHAL_LOG_LEVEL_WARN, "網路錯誤!\n");
         return ERROR_CODE_WIFI_DISCONNECTED;
     }
     else
@@ -146,13 +146,13 @@ int16_t RagicAPI::readList_Json(JsonObject *objIn)
         csHTTPClient.setTimeout(intTimeOut);
         csHTTPClient.addHeader("Content-Type", "application/json");
         if (testsw)
-            _CONSOLE_PRINTF(_PRINT_LEVEL_WARNING, "WEB:%s\n", WEB.c_str());
+            _CONSOLE_PRINTF(ARDUHAL_LOG_LEVEL_WARN, "WEB:%s\n", WEB.c_str());
 
         httpCode = csHTTPClient.GET();
 
         if (httpCode != HTTP_CODE_OK)
         {
-            _CONSOLE_PRINTF(_PRINT_LEVEL_WARNING, "HTTP ERROR:%s\n", HTTPClient::errorToString(httpCode).c_str());
+            _CONSOLE_PRINTF(ARDUHAL_LOG_LEVEL_WARN, "HTTP ERROR:%s\n", HTTPClient::errorToString(httpCode).c_str());
             return ERROR_CODE_HTTP_ERROR;
         }
         else
@@ -175,14 +175,14 @@ int16_t RagicAPI::readList_Json(JsonObject *objIn)
             obj["return"] = objReturn; // 將objReturn的內容直接複製到obj["return"]
             if (error)
             {
-                _CONSOLE_PRINTF(_PRINT_LEVEL_WARNING, "反序列化失敗:%s\n", error.c_str());
+                _CONSOLE_PRINTF(ARDUHAL_LOG_LEVEL_WARN, "反序列化失敗:%s\n", error.c_str());
                 serializeJsonPretty(objReturn, Serial);
                 Serial.println();
                 return ERROR_CODE_DESERIALIZE_ERROR;
             }
             if (!objReturn["status"].isNull())
             {
-                _CONSOLE_PRINTF(_PRINT_LEVEL_WARNING, "讀取失敗\n");
+                _CONSOLE_PRINTF(ARDUHAL_LOG_LEVEL_WARN, "讀取失敗\n");
                 serializeJsonPretty(objReturn, Serial);
                 Serial.println();
                 return ERROR_CODE_OTHER_ERROR;
@@ -210,7 +210,7 @@ void taskRagic(void *pvParam)
     }
     else
     {
-        _CONSOLE_PRINTLN(_PRINT_LEVEL_WARNING, "輸入參數錯誤!");
+        _CONSOLE_PRINTLN(ARDUHAL_LOG_LEVEL_WARN, "輸入參數錯誤!");
         vTaskDelete(NULL);
     }
 
@@ -233,7 +233,7 @@ void taskRagic(void *pvParam)
                 JsonObject obj = (*objIN)["Write"];
                 int16_t returnCode = ptrRagicAPI->writeList_Json(&obj);
                 if (returnCode <= 0)
-                    _CONSOLE_PRINTF(_PRINT_LEVEL_WARNING, "錯誤代碼:%d!\n", returnCode);
+                    _CONSOLE_PRINTF(ARDUHAL_LOG_LEVEL_WARN, "錯誤代碼:%d!\n", returnCode);
                 (*objIN)["Respond"].to<JsonObject>()["status"] = returnCode;
             }
             else if (!(*objIN)["Read"].isNull())
